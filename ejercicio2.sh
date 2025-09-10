@@ -1,24 +1,24 @@
 #!/bin/bash
 
-# Verificar argumento
+# Verificar argumento.
 if [ $# -eq 0 ]; then
     echo "Uso: $0 <comando> [argumentos...]"
     exit 1
 fi
 
-# Variables (todas en minúsculas)
+# Variables 
 comando="$@"
 nombre_proceso=$(basename "$1")
 log_file="/tmp/monitor_${nombre_proceso}_$(date +%Y%m%d_%H%M%S).log"
 data_file="/tmp/monitor_${nombre_proceso}_data.dat"
 plot_script="/tmp/plot_${nombre_proceso}.plt"
 
-# Función para obtener consumo de CPU y memoria
+# Funcion para obtener consumo de CPU y memoria.
 obtener_consumo() {
     local pid=$1
     local timestamp=$(date +%s)
     
-    # Obtener información del proceso 
+    # Obtener informacion del proceso.
     local info=$(ps -p $pid -o %cpu,%mem --no-headers 2>/dev/null)
     
     if [ $? -eq 0 ]; then
@@ -29,7 +29,7 @@ obtener_consumo() {
     fi
 }
 
-# Generar el gráfico
+# Generar el grafico.
 generar_grafico() {
     awk 'NR==1 {start=$1} {print $1-start " " $2 " " $3}' "$log_file" > "$data_file"
     
@@ -52,17 +52,17 @@ set output "/tmp/monitor_${nombre_proceso}_plot.png"
 replot
 EOF
 
-    # Generar gráfico
+    # Generar grafico
     gnuplot -persist "$plot_script" 2>/dev/null || \
-    echo "No se pudo mostrar ventana interactiva. El gráfico se guardó en: /tmp/monitor_${nombre_proceso}_plot.png"
+    echo "No se pudo mostrar ventana interactiva. El grafico se guardo en: /tmp/monitor_${nombre_proceso}_plot.png"
 }
 
-# Iniciar el proceso
+# Iniciar el proceso.
 echo "Ejecutando: $comando"
 $comando &
 pid=$!
 
-# Esperar a que el proceso se estabilice
+# Esperar a que el proceso se estabilice.
 sleep 0.5
 
 real_pid=$(pgrep -P $pid | head -1 || echo $pid)
@@ -74,10 +74,10 @@ echo "Monitoreando proceso $nombre_proceso"
 echo "Archivo de log: $log_file"
 echo "Presiona Ctrl+C para detener el monitoreo"
 
-# Encabezado del log
+# Encabezado del log.
 echo "# Timestamp CPU(%) Mem(%)" > "$log_file"
 
-# Monitorear hasta que el proceso termine
+# Monitorear hasta que el proceso termine.
 while kill -0 $pid 2>/dev/null; do
     obtener_consumo $pid
     sleep 1 
@@ -90,4 +90,4 @@ echo ""
 echo "Monitoreo completado. Resultados:"
 echo "- Log: $log_file"
 echo "- Datos: $data_file"
-echo "- Gráfico: /tmp/monitor_${nombre_proceso}_plot.png"
+echo "- Grafico: /tmp/monitor_${nombre_proceso}_plot.png"
