@@ -21,14 +21,14 @@ usuario="$1"
 grupo="$2"
 archivo="$3"
 
-# Verifique que la ruta al archivo existe.
+# Verificar que la ruta al archivo existe.
 if [ ! -e "$archivo" ]; then
     echo "$(date '+%Y-%m-%d %H:%M:%S') - Error: El archivo '$archivo' no existe" >> "$LOG_FILE"
     echo "Error: El archivo '$archivo' no existe" >&2
     exit 1
 fi
 
-# Si el grupo no existe, debe crearlo.
+# Si el grupo no existe, se crea.
 if getent group "$grupo" > /dev/null 2>&1; then
     echo "El grupo '$grupo' ya existe"
 else 
@@ -41,7 +41,7 @@ else
     fi
 fi
 
-# Si el usuario no existe, debe crearlo.
+# Si el usuario no existe, se crea.
 if id "$usuario" &> /dev/null; then
     echo "El usuario '$usuario' ya existe"
     # Agreguelo al grupo
@@ -57,7 +57,7 @@ else
     fi
 fi
 
-# Modifique la pertenencia del archivo.
+# Modificar la pertenencia del archivo.
 if chown "$usuario:$grupo" "$archivo" 2>> "$LOG_FILE"; then
     echo "El archivo se ha cambiado a '$usuario:$grupo'"
 else
@@ -66,7 +66,7 @@ else
     exit 1
 fi
 
-# Modifique los permisos del archivo.
+# Modificar los permisos del archivo.
 if chmod 740 "$archivo" 2>> "$LOG_FILE"; then
     echo "Se ha cambiado los permisos del archivo"
 else
