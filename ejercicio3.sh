@@ -1,7 +1,7 @@
 #!/bin/bash
 
 directorio="/home/manu/Downloads" # Escojo este directorio por que es el que mas movimientso tiene en la maquina virtual.
-monitoreo="/home/manu/laboratorios/Lab_2/monito.log"
+monitoreo="/home/manu/laboratorios/Lab_2/monito.log" # En ese .log guardo los datos
 
 if [ -d $directorio ]; then
 	inotifywait -m -e create,modify,delete,move "$directorio" |
@@ -11,3 +11,5 @@ done
 else
 	echo "El directorio $directorio" no existe
 fi
+
+# Con la unidad de servicio systemd este script se ejecuta constantemente, en el reporte se evidencia
