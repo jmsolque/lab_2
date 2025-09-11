@@ -2,14 +2,14 @@
 
 # Verificar argumento.
 if [ $# -eq 0 ]; then
-    echo "Uso: $0 <comando> [argumentos...]"
+    echo "Uso: $0 <comando> [argumentos]"
     exit 1
 fi
 
 # Variables 
 comando="$@"
 nombre_proceso=$(basename "$1")
-log_file="/tmp/monitor_${nombre_proceso}_$(date +%Y%m%d_%H%M%S).log"
+log_file="/tmp/monitor_${nombre_proceso}_$(date +%Y%m%d_%H%M%S).log" #Los tmp son archivos temporales
 data_file="/tmp/monitor_${nombre_proceso}_data.dat"
 plot_script="/tmp/plot_${nombre_proceso}.plt"
 
@@ -31,9 +31,15 @@ obtener_consumo() {
 
 # Generar el grafico.
 generar_grafico() {
-    awk 'NR==1 {start=$1} {print $1-start " " $2 " " $3}' "$log_file" > "$data_file"
+    # Verificar que hay datos para graficar
+    if [ ! -s "$log_file" ] || [ $(wc -l < "$log_file") -le 1 ]; then
+        echo "No hay suficientes datos para generar el grafico."
+        return 1
+    fi
     
-    cat > "$plot_script" << EOF
+    awk 'NR==1 {start=$1} {print $1-start " " $2 " " $3}' "$log_file" > "$data_file"
+
+    cat > "$plot_script" << EOF 
 set terminal x11 persist size 1200,600 enhanced font 'Verdana,12'
 set title "Monitorizacion de $nombre_proceso"
 set xlabel "Tiempo (segundos)"
@@ -53,8 +59,12 @@ replot
 EOF
 
     # Generar grafico
-    gnuplot -persist "$plot_script" 2>/dev/null || \
-    echo "No se pudo mostrar ventana interactiva. El grafico se guardo en: /tmp/monitor_${nombre_proceso}_plot.png"
+    if command -v gnuplot >/dev/null 2>&1; then
+        gnuplot -persist "$plot_script" 2>/dev/null || \
+        echo "No se pudo mostrar ventana interactiva, el grafico se guardo en: /tmp/monitor_${nombre_proceso}_plot.png"
+    else
+        echo "Gnuplot no está instalado. No se puede generar el grafico."
+    fi
 }
 
 # Iniciar el proceso.
@@ -65,20 +75,21 @@ pid=$!
 # Esperar a que el proceso se estabilice.
 sleep 0.5
 
-real_pid=$(pgrep -P $pid | head -1 || echo $pid)
-if [ "$real_pid" != "$pid" ]; then
+# Buscar el PID correcto
+real_pid=$(ps --ppid $pid -o pid= | head -1 | tr -d ' ')
+if [ -n "$real_pid" ]; then
     pid=$real_pid
 fi
 
-echo "Monitoreando proceso $nombre_proceso"
+echo "Monitoreando proceso $nombre_proceso (PID: $pid)"
 echo "Archivo de log: $log_file"
 echo "Presiona Ctrl+C para detener el monitoreo"
 
 # Encabezado del log.
 echo "# Timestamp CPU(%) Mem(%)" > "$log_file"
 
-# Monitorear hasta que el proceso termine.
-while kill -0 $pid 2>/dev/null; do
+# Monitorear hasta que el proceso se termine.
+while ps -p $pid >/dev/null 2>&1; do
     obtener_consumo $pid
     sleep 1 
 done
@@ -86,8 +97,12 @@ done
 echo "Proceso terminado."
 generar_grafico
 
-echo ""
-echo "Monitoreo completado. Resultados:"
+#Datos finales
+echo " "
+echo "Monitoreo completado:"
+echo " "
 echo "- Log: $log_file"
+echo " "
 echo "- Datos: $data_file"
+echo " "
 echo "- Grafico: /tmp/monitor_${nombre_proceso}_plot.png"
